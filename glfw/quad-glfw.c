@@ -56,24 +56,32 @@ int main(){
 			layout(location = 0) in vec4 IN_position;
 			layout(location = 1) in vec2 IN_uv;
 			out vec2 uv;
+			out vec4 color;
 			void main(){
 				gl_Position = IN_position;
 				uv = IN_uv;
+				color = vec4(1, 0, 0, 1);
 			}
 		),
 		.fs.source = GLSL33(
 			in vec2 uv;
+			in vec4 color;
 			out vec4 OUT_color;
 			void main(){
 				float len = length(uv);
-				float mask = smoothstep(1 - fwidth(len), 1, len);
-				OUT_color = vec4(mask, mask, mask, 1);
+				float mask = smoothstep(1, 1 - fwidth(len), len);
+				OUT_color = color*mask;
 			}
 		),
 	});
 	
 	sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 		.shader = shd,
+		.blend = {
+			.enabled = true,
+			.src_factor_rgb = SG_BLENDFACTOR_ONE,
+			.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA
+		},
 		.index_type = SG_INDEXTYPE_UINT16,
 		.layout = {
 			.attrs = {
@@ -89,9 +97,11 @@ int main(){
 		int cur_width, cur_height;
 		glfwGetFramebufferSize(w, &cur_width, &cur_height);
 		sg_begin_default_pass(&pass_action, cur_width, cur_height);
+		
 		sg_apply_pipeline(pip);
 		sg_apply_bindings(&bind);
 		sg_draw(0, 6, 1);
+		
 		sg_end_pass();
 		sg_commit();
 		glfwSwapBuffers(w);
