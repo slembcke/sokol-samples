@@ -1,7 +1,5 @@
-//------------------------------------------------------------------------------
-//  quad-glfw.c
-//  Indexed drawing, explicit vertex attr locations.
-//------------------------------------------------------------------------------
+#include "stddef.h"
+
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "flextgl/flextGL.h"
@@ -25,12 +23,20 @@ int main(){
 	sg_desc desc = {};
 	sg_setup(&desc);
 	assert(sg_isvalid());
-
-	float vertices[] = {
-		-0.5f,  0.5f,	-1.0f,  1.0f,
-		 0.5f,  0.5f,	 1.0f,  1.0f,
-		 0.5f, -0.5f,	 1.0f, -1.0f,
-		-0.5f, -0.5f,	-1.0f, -1.0f,
+	
+	typedef struct {float x, y;} float2;
+	typedef struct {uint8_t r, g, b, a;} RGBA8;
+	typedef struct {float2 position; float2 uv; RGBA8 color;} Vertex;
+	
+	float2 vertex = {0.0f, 0.0f};
+	float radius = 1.0f;
+	RGBA8 color = {0xFF, 0x00, 0x00, 0xFF};
+	
+	Vertex vertices[] = {
+		{{-0.5f,  0.5f}, {-1.0f,  1.0f}, color},
+		{{ 0.5f,  0.5f}, { 1.0f,  1.0f}, color},
+		{{ 0.5f, -0.5f}, { 1.0f, -1.0f}, color},
+		{{-0.5f, -0.5f}, {-1.0f, -1.0f}, color},
 	};
 	
 	sg_buffer vbuf = sg_make_buffer(&(sg_buffer_desc){
@@ -55,18 +61,23 @@ int main(){
 		.vs.source = GLSL33(
 			layout(location = 0) in vec4 IN_position;
 			layout(location = 1) in vec2 IN_uv;
+			layout(location = 2) in vec4 IN_color;
+			
 			out vec2 uv;
 			out vec4 color;
+			
 			void main(){
 				gl_Position = IN_position;
 				uv = IN_uv;
-				color = vec4(1, 0, 0, 1);
+				color = IN_color;
 			}
 		),
 		.fs.source = GLSL33(
 			in vec2 uv;
 			in vec4 color;
+			
 			out vec4 OUT_color;
+			
 			void main(){
 				float len = length(uv);
 				float mask = smoothstep(1, 1 - fwidth(len), len);
@@ -85,8 +96,13 @@ int main(){
 		.index_type = SG_INDEXTYPE_UINT16,
 		.layout = {
 			.attrs = {
-				[0] = {.offset = 0, .format = SG_VERTEXFORMAT_FLOAT2},
-				[1] = {.offset = 8, .format = SG_VERTEXFORMAT_FLOAT2},
+				// [0] = {.offset = offsetof(Vertex, position), .format = SG_VERTEXFORMAT_FLOAT2},
+				// [1] = {.offset = offsetof(Vertex, radius), .format = SG_VERTEXFORMAT_FLOAT},
+				// [1] = {.offset = offsetof(Vertex, uv), .format = SG_VERTEXFORMAT_FLOAT2},
+				// [2] = {.offset = offsetof(Vertex, color), .format = SG_VERTEXFORMAT_UBYTE4N},
+				[0] = {.offset = offsetof(Vertex, position), .format = SG_VERTEXFORMAT_FLOAT2},
+				[1] = {.offset = offsetof(Vertex, uv), .format = SG_VERTEXFORMAT_FLOAT2},
+				[2] = {.offset = offsetof(Vertex, color), .format = SG_VERTEXFORMAT_UBYTE4N},
 			}
 		}
 	});
