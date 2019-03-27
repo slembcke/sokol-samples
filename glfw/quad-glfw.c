@@ -27,10 +27,10 @@ int main(){
 	assert(sg_isvalid());
 
 	float vertices[] = {
-		-0.5f,  0.5f, 0.5f,     1.0f, 0.0f, 0.0f, 1.0f,
-		 0.5f,  0.5f, 0.5f,     0.0f, 1.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f, 0.5f,     0.0f, 0.0f, 1.0f, 1.0f,
-		-0.5f, -0.5f, 0.5f,     1.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f,	-1.0f,  1.0f,
+		 0.5f,  0.5f,	 1.0f,  1.0f,
+		 0.5f, -0.5f,	 1.0f, -1.0f,
+		-0.5f, -0.5f,	-1.0f, -1.0f,
 	};
 	
 	sg_buffer vbuf = sg_make_buffer(&(sg_buffer_desc){
@@ -53,19 +53,21 @@ int main(){
 
 	sg_shader shd = sg_make_shader(&(sg_shader_desc){
 		.vs.source = GLSL33(
-			layout(location=0) in vec4 position;
-			layout(location=1) in vec4 color0;
-			out vec4 color;
-			void main() {
-				gl_Position = position;
-				color = color0;
+			layout(location = 0) in vec4 IN_position;
+			layout(location = 1) in vec2 IN_uv;
+			out vec2 uv;
+			void main(){
+				gl_Position = IN_position;
+				uv = IN_uv;
 			}
 		),
 		.fs.source = GLSL33(
-			in vec4 color;
-			out vec4 frag_color;
-			void main() {
-				frag_color = color;
+			in vec2 uv;
+			out vec4 OUT_color;
+			void main(){
+				float len = length(uv);
+				float mask = smoothstep(1 - fwidth(len), 1, len);
+				OUT_color = vec4(mask, mask, mask, 1);
 			}
 		),
 	});
@@ -75,8 +77,8 @@ int main(){
 		.index_type = SG_INDEXTYPE_UINT16,
 		.layout = {
 			.attrs = {
-				[0] = { .offset=0, .format=SG_VERTEXFORMAT_FLOAT3 },
-				[1] = { .offset=12, .format=SG_VERTEXFORMAT_FLOAT4 }
+				[0] = {.offset = 0, .format = SG_VERTEXFORMAT_FLOAT2},
+				[1] = {.offset = 8, .format = SG_VERTEXFORMAT_FLOAT2},
 			}
 		}
 	});
